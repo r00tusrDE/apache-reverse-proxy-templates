@@ -1,0 +1,47 @@
+<VirtualHost *:80>
+
+        ServerName 'portainer.example.com'
+
+        ErrorLog ${APACHE_LOG_DIR}/portainer.example.com.error.log
+        LogFormat "%h %l %u %t \"%r\" %>s %b \"%{Referer}i\" \"%{User-agent}i\"" combined
+        CustomLog ${APACHE_LOG_DIR}/portainer.example.com.access.log combined
+
+        RewriteEngine On
+        RewriteCond %{HTTPS} off
+        RewriteRule ^(.*)$ https://%{HTTP_HOST}$1 [R=301,L]
+
+</VirtualHost>
+
+<VirtualHost *:443>
+
+        ServerName 'portainer.example.com'
+
+        ErrorLog ${APACHE_LOG_DIR}/portainer.example.com.ssl.error.log
+        LogFormat "%h %l %u %t \"%r\" %>s %b \"%{Referer}i\" \"%{User-agent}i\"" combined
+        CustomLog ${APACHE_LOG_DIR}/portainer.example.com.ssl.access.log combined
+
+        RewriteEngine On
+        RewriteCond %{HTTP:Connection} Upgrade [NC]
+        RewriteCond %{HTTP:Upgrade} websocket [NC]
+        RewriteRule /(.*) ws://127.0.0.1:9000/$1 [P,L]
+
+        SSLEngine on
+        SSLCertificateFile /etc/letsencrypt/live/portainer.example.com/cert.pem
+        SSLCertificateKeyFile /etc/letsencrypt/live/portainer.example.com/privkey.pem
+        SSLCertificateChainFile /etc/letsencrypt/live/portainer.example.com/chain.pem
+
+        SSLProxyEngine On
+        SSLProxyVerify none
+        SSLProxyCheckPeerCN off
+        SSLProxyCheckPeerName off
+        SSLProxyCheckPeerExpire off
+
+        ProxyPreserveHost On
+        ProxyRequests off
+
+        <Location />
+                ProxyPass http://127.0.0.1:9000/
+                ProxyPassReverse /
+        </Location>
+
+</VirtualHost>
