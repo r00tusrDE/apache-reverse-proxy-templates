@@ -1,0 +1,42 @@
+<VirtualHost *:80>
+        ServerName mail.example.com
+        #ServerAlias autodiscover.*
+        ServerAlias autoconfig.*
+        RewriteEngine on
+
+        RewriteCond %{HTTP_HOST} ^autoconfig\. [NC]
+        RewriteRule ^ - [S=1]
+        RewriteRule ^ https://%{HTTP_HOST}%{REQUEST_URI}# [L,NE,R=permanent]
+        RewriteRule ^ /autoconfig.php [PT]
+
+        ProxyPass / http://127.0.0.1:8080/
+        ProxyPassReverse / http://127.0.0.1:8080/
+        ProxyPreserveHost On
+        ProxyAddHeaders On
+        RequestHeader set X-Forwarded-Proto "http"
+</VirtualHost>
+
+<VirtualHost *:443>
+        ServerName mail.example.com
+        #ServerAlias autodiscover.*
+        
+        # You should proxy to a plain HTTP session to offload SSL processing
+        ProxyPass / http://127.0.0.1:8080/
+        ProxyPassReverse / http://127.0.0.1:8080/
+        ProxyPreserveHost On
+        ProxyAddHeaders On
+        RequestHeader set X-Forwarded-Proto "https"
+        
+        SSLCertificateFile /etc/letsencrypt/live/mail.example.com/cert.pem
+        SSLCertificateKeyFile /etc/letsencrypt/live/mail.example.com/privkey.pem
+        SSLCertificateChainFile /etc/letsencrypt/live/mail.example.com/chain.pem
+        
+        # If you plan to proxy to a HTTPS host:
+        #SSLProxyEngine On
+        
+        # If you plan to proxy to an untrusted HTTPS host:
+        #SSLProxyVerify none
+        #SSLProxyCheckPeerCN off
+        #SSLProxyCheckPeerName off
+        #SSLProxyCheckPeerExpire off
+</VirtualHost>
