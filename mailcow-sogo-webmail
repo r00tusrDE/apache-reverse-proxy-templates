@@ -1,0 +1,43 @@
+<VirtualHost *:80>
+
+        ServerName 'webmail.example.com'
+
+        ErrorLog ${APACHE_LOG_DIR}/webmail.example.com.error.log
+        LogFormat "%h %l %u %t \"%r\" %>s %b \"%{Referer}i\" \"%{User-agent}i\"" combined
+        CustomLog ${APACHE_LOG_DIR}/webmail.example.com.access.log combined
+
+        RewriteEngine On
+        RewriteCond %{HTTPS} off
+        RewriteRule ^(.*)$ https://%{HTTP_HOST}$1 [R=301,L]
+
+</VirtualHost>
+
+<VirtualHost *:443>
+
+        ServerName 'webmail.example.com'
+
+        RewriteEngine On
+        RewriteRule "^/$" "/SOGo/" [R]
+        #RedirectMatch ^/$ /SOGo/
+
+        ErrorLog ${APACHE_LOG_DIR}/webmail.example.com.ssl.error.log
+        LogFormat "%h %l %u %t \"%r\" %>s %b \"%{Referer}i\" \"%{User-agent}i\"" combined
+        CustomLog ${APACHE_LOG_DIR}/webmail.example.com.ssl.access.log combined
+
+        SSLEngine on
+        SSLCertificateFile /etc/letsencrypt/live/webmail.example.com/cert.pem
+        SSLCertificateKeyFile /etc/letsencrypt/live/webmail.example.com/privkey.pem
+        SSLCertificateChainFile /etc/letsencrypt/live/webmail.example.com/chain.pem
+
+        SSLProxyEngine On
+        SSLProxyVerify none
+        SSLProxyCheckPeerCN off
+        SSLProxyCheckPeerName off
+        SSLProxyCheckPeerExpire off
+
+        ProxyPreserveHost On
+        ProxyRequests off
+        ProxyPass / 'http://127.0.0.1:8080/'
+        ProxyPassReverse / 'http://127.0.0.1:8080/'
+
+</VirtualHost>
