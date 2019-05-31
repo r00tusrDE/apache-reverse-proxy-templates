@@ -1,0 +1,52 @@
+<VirtualHost *:80>
+
+        ServerName 'cloud.example.com'
+
+        ErrorLog ${APACHE_LOG_DIR}/cloud.example.com.error.log
+        LogFormat "%h %l %u %t \"%r\" %>s %b \"%{Referer}i\" \"%{User-agent}i\"" combined
+        CustomLog ${APACHE_LOG_DIR}/cloud.example.com.access.log combined
+
+        RewriteEngine On
+        RewriteCond %{HTTPS} off
+        RewriteRule ^(.*)$ https://%{HTTP_HOST}$1 [R=301,L]
+
+</VirtualHost>
+
+<VirtualHost *:443>
+
+        ServerName 'cloud.example.com'
+
+        RewriteEngine On
+        RewriteRule ^/\.well-known/host-meta /public.php?service=host-meta [QSA,L]
+        RewriteRule ^/\.well-known/host-meta\.json /public.php?service=host-meta-json [QSA,L]
+        RewriteRule ^/\.well-known/webfinger /public.php?service=webfinger [QSA,L]
+        RewriteRule ^/\.well-known/carddav /remote.php/dav/ [R=301,L]
+        RewriteRule ^/\.well-known/caldav /remote.php/dav/ [R=301,L]
+        RewriteCond %{HTTP:Authorization} ^(.*)
+        RewriteRule . - [e=HTTP_AUTHORIZATION:%1]
+
+        <IfModule mod_headers.c>
+                Header always set Strict-Transport-Security "max-age=15552000"
+        </IfModule>
+
+        ErrorLog ${APACHE_LOG_DIR}/cloud.example.com.ssl.error.log
+        LogFormat "%h %l %u %t \"%r\" %>s %b \"%{Referer}i\" \"%{User-agent}i\"" combined
+        CustomLog ${APACHE_LOG_DIR}/cloud.example.com.ssl.access.log combined
+
+        SSLEngine on
+        SSLCertificateFile /etc/letsencrypt/live/cloud.example.com/cert.pem
+        SSLCertificateKeyFile /etc/letsencrypt/live/cloud.example.com/privkey.pem
+        SSLCertificateChainFile /etc/letsencrypt/live/cloud.example.com/chain.pem
+
+        SSLProxyEngine On
+        SSLProxyVerify none
+        SSLProxyCheckPeerCN off
+        SSLProxyCheckPeerName off
+        SSLProxyCheckPeerExpire off
+
+        ProxyPreserveHost On
+        ProxyRequests off
+        ProxyPass / 'http://127.0.0.1:8085/'
+        ProxyPassReverse / 'http://127.0.0.1:8085/'
+
+</VirtualHost>
