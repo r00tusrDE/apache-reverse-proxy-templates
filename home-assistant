@@ -1,0 +1,49 @@
+<VirtualHost *:80>
+
+        ServerName 'sub.example.com'
+
+        ErrorLog ${APACHE_LOG_DIR}/sub.example.com.error.log
+        LogFormat "%h %l %u %t \"%r\" %>s %b \"%{Referer}i\" \"%{User-agent}i\"" combined
+        CustomLog ${APACHE_LOG_DIR}/sub.example.com.access.log combined
+
+        RewriteEngine On
+        RewriteCond %{HTTPS} off
+        RewriteRule ^(.*)$ https://%{HTTP_HOST}$1 [R=301,L]
+
+</VirtualHost>
+
+<VirtualHost *:443>
+
+        ServerName 'sub.example.com'
+
+        ErrorLog ${APACHE_LOG_DIR}/sub.example.com.ssl.error.log
+        LogFormat "%h %l %u %t \"%r\" %>s %b \"%{Referer}i\" \"%{User-agent}i\"" combined
+        CustomLog ${APACHE_LOG_DIR}/sub.example.com.ssl.access.log combined
+
+        SSLEngine on
+        SSLCertificateFile /etc/letsencrypt/live/sub.example.com/cert.pem
+        SSLCertificateKeyFile /etc/letsencrypt/live/sub.example.com/privkey.pem
+        SSLCertificateChainFile /etc/letsencrypt/live/sub.example.com/chain.pem
+
+        SSLProxyEngine On
+        SSLProxyVerify none
+        SSLProxyCheckPeerCN off
+        SSLProxyCheckPeerName off
+        SSLProxyCheckPeerExpire off
+
+        ProxyPreserveHost On
+        ProxyRequests off
+        ProxyPass / 'http://127.0.0.1:8123/'
+        ProxyPassReverse / 'http://127.0.0.1:8123/'
+        ProxyPass /api/websocket ws://127.0.0.1:8123/api/websocket
+        ProxyPassReverse /api/websocket ws://127.0.0.1:8123/api/websocket
+        ProxyPass / http://127.0.0.1:8123/
+        ProxyPassReverse / http://127.0.0.1:8123/
+
+        RewriteEngine on
+        RewriteCond %{HTTP:Upgrade} =websocket [NC]
+        RewriteRule /(.*)  ws://127.0.0.1:8123/$1 [P,L]
+        RewriteCond %{HTTP:Upgrade} !=websocket [NC]
+        RewriteRule /(.*)  http://127.0.0.1:8123/$1 [P,L]
+
+</VirtualHost>
